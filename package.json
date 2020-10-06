@@ -10,6 +10,7 @@
     "lint": "./node_modules/.bin/eslint ./src/**/*.js",
     "lint-fix": "./node_modules/.bin/eslint --fix ./src/**/*.js",
     "test": "nyc mocha tests && ./node_modules/.bin/eslint ./src/**/*.js",
+    "test:only": "nyc mocha tests",
     "test:load": "forever start --minUptime=10000 --spinSleepTime=10000 index.js && artillery run --output=load-report.json artillery.yml && forever stop index.js",
     "start": "NODE_ENV=production node index.js",
     "start:dev": "NODE_ENV=development nodemon index.js",
