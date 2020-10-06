@@ -50,7 +50,6 @@ describe('API tests', () => {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .then(response => {
-                        console.log(response.body)
                         assert(response.body.rides.length, 6);
                         done();
                     }).catch(err => done(err));
