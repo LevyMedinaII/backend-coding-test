@@ -1,5 +1,9 @@
 # Rider API
+
+[![Build Status](https://travis-ci.com/LevyMedinaII/backend-coding-test.svg?token=wH1SvmquyGVoZYzTsppH&branch=master)](https://travis-ci.com/LevyMedinaII/backend-coding-test)
+
 An API for storing and retrieving rides built with ExpressJS and SQLite.
+
 
 ## Setup & Usage
 1. Pull this repository.
