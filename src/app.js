@@ -77,7 +77,49 @@ module.exports = (db) => {
     });
 
     app.get('/rides', (req, res) => {
-        db.all('SELECT * FROM Rides', function (err, rows) {
+        const DEFAULT_ORDER = 'ASC';
+        const order = req.query.order || DEFAULT_ORDER;
+        const limit = Number(req.query.limit);
+        let nextCursor = Number(req.query.next_cursor);
+
+        let query = 'SELECT * FROM Rides';
+
+        if (nextCursor && typeof nextCursor !== 'number') {
+            return res.send({
+                error_code: 'VALIDATION_ERROR',
+                message: 'Pagination next_cursor must be a valid number'
+            });
+        }
+
+        if (limit && typeof limit !== 'number') {
+            return res.send({
+                error_code: 'VALIDATION_ERROR',
+                message: 'Pagination limit must be a valid number'
+            });
+        }
+
+        if (order && (typeof order !== 'string' || !['ASC', 'DESC'].find(o => o === order))) {
+            return res.send({
+                error_code: 'VALIDATION_ERROR',
+                message: 'Pagination order must either be ASC or DESC'
+            });
+        }
+
+        if (nextCursor) {
+            if (order === 'DESC') {
+                query = `${query} WHERE rideID <= ${nextCursor}`;
+            } else {
+                query = `${query} WHERE rideID >= ${nextCursor}`;
+            }
+        }
+        if (order) {
+            query = `${query} ORDER BY rideID ${order}`;
+        }
+        if (limit) {
+            query = `${query} LIMIT ${limit + 1}`;
+        }
+
+        db.all(query, function (err, rows) {
             if (err) {
                 return res.send({
                     error_code: 'SERVER_ERROR',
@@ -92,7 +134,19 @@ module.exports = (db) => {
                 });
             }
 
-            res.send(rows);
+            if (rows.length > limit) {
+                const nextCursorRide = rows.pop();
+                nextCursor = nextCursorRide.rideID;
+            } else {
+                nextCursor = null;
+            }
+
+            res.send({
+                rides: rows,
+                limit,
+                next_cursor: nextCursor,
+                order,
+            });
         });
     });
 
