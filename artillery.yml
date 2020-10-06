@@ -1,0 +1,36 @@
+config:
+  target: http://localhost:8010
+  phases:
+    - duration: 30
+      arrivalRate: 100
+      name: 30s100rps
+scenarios:
+  - name: "Create a Ride"
+    flow:
+      - post:
+          url: "/rides"
+          json:
+            driver_vehicle: "toyota vios"
+            driver_name: "peter"
+            rider_name: "john"
+            start_lat: 1
+            start_long: 1
+            end_lat: 2
+            end_long: 2
+  - name: "Get All Rides"
+    flow:
+      - get:
+          url: "/rides"
+  - name: "Get Paginated Rides"
+    flow:
+      - get:
+          url: "/rides?limit=2&order=ASC"
+          capture:
+            json: "$.results.next_cursor"
+            as: "next_cursor"
+      - get:
+          url: "/rides?limit=2&order=ASC&next_cursor={{next_cursor}}"
+  - name: "Get One Ride"
+    flow:
+      - get:
+          url: "/rides/1"

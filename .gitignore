@@ -62,3 +62,6 @@ typings/
 
 # DOCUMENTATION.md HTML File Output
 documentation/
+
+# Artillery report output
+load-report.json

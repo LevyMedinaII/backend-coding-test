@@ -10,8 +10,9 @@
     "lint": "./node_modules/.bin/eslint ./src/**/*.js",
     "lint-fix": "./node_modules/.bin/eslint --fix ./src/**/*.js",
     "test": "nyc mocha tests && ./node_modules/.bin/eslint ./src/**/*.js",
-    "start": "node index.js",
-    "start-dev": "nodemon index.js",
+    "test:load": "forever start --minUptime=10000 --spinSleepTime=10000 index.js && artillery run --output=load-report.json artillery.yml && forever stop index.js",
+    "start": "NODE_ENV=production node index.js",
+    "start:dev": "NODE_ENV=development nodemon index.js",
     "documentation": "rm -rf documentation/ && mkdir documentation && showdown makehtml -i DOCUMENTATION.md -o documentation/index.html"
   },
   "keywords": [
@@ -26,7 +27,10 @@
     "winston": "^3.3.3"
   },
   "devDependencies": {
+    "artillery": "^1.6.1",
+    "compression": "^1.7.4",
     "eslint": "^7.10.0",
+    "forever": "^3.0.2",
     "mocha": "^6.1.4",
     "nodemon": "^2.0.4",
     "nyc": "^15.1.0",
