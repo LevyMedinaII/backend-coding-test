@@ -8,6 +8,7 @@ An API for storing and retrieving rides built with ExpressJS and SQLite.
 4. To run the server, run `npm start`.
 5. To run the server in debug mode, run `npm run start-dev`.
 6. To convert this documentation file to HTML format, run `npm run documentation`.
+7. To run the eslint linter and autofix errors, run `npm run lint-fix`.
 
 ## Routes
 ### Get Ride
@@ -67,13 +68,13 @@ Returns all stored rides.
 **Request Body:**
 ```
 {
-    startLat<decimal>: starting latitude coordinate of the ride,
-    startLong<decimal>: starting longitude coordinate of the ride,
-    endLat<decimal>: ending latitude coordinate of the ride,
-    endLong<decimal>: ending longitude coordinate of the ride,
-    riderName<string>: name of the rider,
-    driverName<string>: name of the driver,
-    driverVehicle<string>: name of the vehicle
+    start_lat <decimal>: starting latitude coordinate of the ride,
+    start_long <decimal>: starting longitude coordinate of the ride,
+    end_lat <decimal>: ending latitude coordinate of the ride,
+    end_long <decimal>: ending longitude coordinate of the ride,
+    rider_name <string>: name of the rider,
+    driver_name <string>: name of the driver,
+    driver_vehicle <string>: name of the vehicle
 }
 ```
 

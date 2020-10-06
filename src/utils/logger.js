@@ -12,8 +12,8 @@ const logger = createLogger({
     ),
     defaultMeta: { service: 'xendit-logger' },
     transports: [
-        new transports.File({ filename: 'quick-start-error.log', level: 'error' }),
-        new transports.File({ filename: 'quick-start-combined.log' })
+        new transports.File({ filename: 'error.log', level: 'error' }),
+        new transports.File({ filename: 'combined.log' })
     ]
 });
 

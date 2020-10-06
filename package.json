@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "./node_modules/.bin/eslint ./src/**/*.js",
     "lint-fix": "./node_modules/.bin/eslint --fix ./src/**/*.js",
-    "test": "nyc mocha tests && npm run lint",
+    "test": "nyc mocha tests && ./node_modules/.bin/eslint ./src/**/*.js",
     "start": "node index.js",
     "start-dev": "nodemon index.js",
     "documentation": "rm -rf documentation/ && mkdir documentation && showdown makehtml -i DOCUMENTATION.md -o documentation/index.html"
