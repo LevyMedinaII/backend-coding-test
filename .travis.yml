@@ -13,4 +13,4 @@ jobs:
       script: npm run lint
     - stage: test
       name: tests
-      script: npm test:only
+      script: npm run test:only
