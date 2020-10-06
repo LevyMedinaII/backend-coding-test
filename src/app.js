@@ -5,11 +5,17 @@ const app = express();
 
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
+const logger = require('./utils/logger');
+
+const { validateLatitude, validateLongitude, validateName } = require('./validators/rides');
+const { validateOrder } = require('./validators/pagination');
+const { validateNumber } = require('./validators/typing');
+const { DatabaseError } = require('./errors');
 
 module.exports = (db) => {
     app.get('/health', (req, res) => res.send('Healthy'));
 
-    app.post('/rides', jsonParser, (req, res) => {
+    app.post('/rides', jsonParser, async (req, res) => {
         const startLatitude = Number(req.body.start_lat);
         const startLongitude = Number(req.body.start_long);
         const endLatitude = Number(req.body.end_lat);
@@ -18,121 +24,67 @@ module.exports = (db) => {
         const driverName = req.body.driver_name;
         const driverVehicle = req.body.driver_vehicle;
 
-        if (startLatitude < -90 || startLatitude > 90 || startLongitude < -180 || startLongitude > 180) {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'Start latitude and longitude must be between -90 - 90 and -180 to 180 degrees respectively'
-            });
-        }
+        try {
+            validateLatitude(startLatitude, 'Start latitude must be -90 to 90 degrees');
+            validateLongitude(startLongitude, 'Start Longitude must be -180 to 180 degrees');
+            validateLatitude(endLatitude, 'End latitude must be -90 to 90 degrees');
+            validateLongitude(endLongitude, 'End Longitude must be -180 to 180 degrees');
+            validateName(riderName, 'Rider name must be a non empty string');
+            validateName(driverName, 'Driver name must be a non empty string');
+            validateName(driverVehicle, 'Vehicle name must be a non empty string');
 
-        if (endLatitude < -90 || endLatitude > 90 || endLongitude < -180 || endLongitude > 180) {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'End latitude and longitude must be between -90 - 90 and -180 to 180 degrees respectively'
-            });
-        }
+            var values = [req.body.start_lat, req.body.start_long, req.body.end_lat, req.body.end_long, req.body.rider_name, req.body.driver_name, req.body.driver_vehicle];
+            await db.run('INSERT INTO Rides(startLat, startLong, endLat, endLong, riderName, driverName, driverVehicle) VALUES (?, ?, ?, ?, ?, ?, ?)', values);
 
-        if (typeof riderName !== 'string' || riderName.length < 1) {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'Rider name must be a non empty string'
-            });
-        }
+            const ride = await db.get('SELECT * FROM Rides ORDER BY rideID DESC LIMIT 1');
 
-        if (typeof driverName !== 'string' || driverName.length < 1) {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'Driver name must be a non empty string'
-            });
-        }
-
-        if (typeof driverVehicle !== 'string' || driverVehicle.length < 1) {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'Vehicle must be a non empty string'
-            });
-        }
-
-        var values = [req.body.start_lat, req.body.start_long, req.body.end_lat, req.body.end_long, req.body.rider_name, req.body.driver_name, req.body.driver_vehicle];
-        
-        db.run('INSERT INTO Rides(startLat, startLong, endLat, endLong, riderName, driverName, driverVehicle) VALUES (?, ?, ?, ?, ?, ?, ?)', values, function (err) {
-            if (err) {
-                return res.send({
+            res.send(ride);
+        } catch (err) {
+            logger.error(err);
+            switch (err.name) {
+            case 'ValidationError':
+                return res.status(422).send({
+                    error_code: err.code,
+                    message: err.message,
+                });
+            default:
+                return res.status(500).send({
                     error_code: 'SERVER_ERROR',
                     message: 'Unknown error'
                 });
             }
-
-            db.all('SELECT * FROM Rides WHERE rideID = ?', this.lastID, function (err, rows) {
-                if (err) {
-                    return res.send({
-                        error_code: 'SERVER_ERROR',
-                        message: 'Unknown error'
-                    });
-                }
-
-                res.send(rows);
-            });
-        });
+        }
     });
 
-    app.get('/rides', (req, res) => {
+    app.get('/rides', async (req, res) => {
         const DEFAULT_ORDER = 'ASC';
         const order = req.query.order || DEFAULT_ORDER;
         const limit = Number(req.query.limit);
         let nextCursor = Number(req.query.next_cursor);
 
-        let query = 'SELECT * FROM Rides';
+        try {
+            if (order) validateOrder(order);
+            if (limit) validateNumber(limit, 'Pagination limit must be a valid number');
+            if (nextCursor) validateNumber(nextCursor, 'Pagination next_cursor must be a valid number');
 
-        if (nextCursor && typeof nextCursor !== 'number') {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'Pagination next_cursor must be a valid number'
-            });
-        }
-
-        if (limit && typeof limit !== 'number') {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'Pagination limit must be a valid number'
-            });
-        }
-
-        if (order && (typeof order !== 'string' || !['ASC', 'DESC'].find(o => o === order))) {
-            return res.send({
-                error_code: 'VALIDATION_ERROR',
-                message: 'Pagination order must either be ASC or DESC'
-            });
-        }
-
-        if (nextCursor) {
-            if (order === 'DESC') {
-                query = `${query} WHERE rideID <= ${nextCursor}`;
-            } else {
-                query = `${query} WHERE rideID >= ${nextCursor}`;
+            let query = 'SELECT * FROM Rides';
+            if (nextCursor) {
+                if (order === 'DESC') {
+                    query = `${query} WHERE rideID <= ${nextCursor}`;
+                } else {
+                    query = `${query} WHERE rideID >= ${nextCursor}`;
+                }
             }
-        }
-        if (order) {
-            query = `${query} ORDER BY rideID ${order}`;
-        }
-        if (limit) {
-            query = `${query} LIMIT ${limit + 1}`;
-        }
-
-        db.all(query, function (err, rows) {
-            if (err) {
-                return res.send({
-                    error_code: 'SERVER_ERROR',
-                    message: 'Unknown error'
-                });
+            if (order) {
+                query = `${query} ORDER BY rideID ${order}`;
+            }
+            if (limit) {
+                query = `${query} LIMIT ${limit + 1}`;
             }
 
-            if (rows.length === 0) {
-                return res.send({
-                    error_code: 'RIDES_NOT_FOUND_ERROR',
-                    message: 'Could not find any rides'
-                });
-            }
+            const rows = await db.all(query);
+
+            if (rows.length === 0) throw new DatabaseError('RIDES_NOT_FOUND_ERROR', 'Could not find any rides');
 
             if (rows.length > limit) {
                 const nextCursorRide = rows.pop();
@@ -147,27 +99,51 @@ module.exports = (db) => {
                 next_cursor: nextCursor,
                 order,
             });
-        });
-    });
-
-    app.get('/rides/:id', (req, res) => {
-        db.all(`SELECT * FROM Rides WHERE rideID='${req.params.id}'`, function (err, rows) {
-            if (err) {
-                return res.send({
+        } catch (err) {
+            logger.error(err);
+            switch (err.name) {
+            case 'ValidationError':
+                return res.status(422).send({
+                    error_code: err.code,
+                    message: err.message,
+                });
+            case 'DatabaseError':
+                return res.status(404).send({
+                    error_code: err.code,
+                    message: err.message,
+                });
+            default:
+                return res.status(500).send({
                     error_code: 'SERVER_ERROR',
                     message: 'Unknown error'
                 });
             }
+        }
 
-            if (rows.length === 0) {
-                return res.send({
-                    error_code: 'RIDES_NOT_FOUND_ERROR',
-                    message: 'Could not find any rides'
+
+    });
+
+    app.get('/rides/:id', async (req, res) => {
+        try {
+            const ride = await db.get(`SELECT * FROM Rides WHERE rideID='${req.params.id}'`);
+            if (!ride) throw new DatabaseError('RIDES_NOT_FOUND_ERROR', 'Could not find any rides');
+
+            res.send(ride);
+        } catch (err) {
+            logger.error(err);
+            switch (err.name) {
+            case 'DatabaseError':
+                return res.status(404).send({
+                    error_code: err.code,
+                    message: err.message,
+                });
+            default:
+                return res.status(500).send({
+                    error_code: 'SERVER_ERROR',
+                    message: 'Unknown error'
                 });
             }
-
-            res.send(rows);
-        });
+        }
     });
 
     return app;
