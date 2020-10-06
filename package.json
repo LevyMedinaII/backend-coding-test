@@ -7,7 +7,9 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "mocha tests",
+    "lint": "./node_modules/.bin/eslint ./src/**/*.js",
+    "lint-fix": "./node_modules/.bin/eslint --fix ./src/**/*.js",
+    "test": "nyc mocha tests && npm run lint",
     "start": "node index.js",
     "documentation": "rm -rf documentation/ && mkdir documentation && showdown makehtml -i DOCUMENTATION.md -o documentation/index.html"
   },
@@ -19,11 +21,18 @@
   "dependencies": {
     "body-parser": "^1.19.0",
     "express": "^4.16.4",
-    "sqlite3": "^4.0.6"
+    "sqlite3": "^4.0.6",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
+    "eslint": "^7.10.0",
     "mocha": "^6.1.4",
+    "nyc": "^15.1.0",
+    "pre-push": "^0.1.1",
     "showdown": "^1.9.1",
     "supertest": "^4.0.2"
-  }
+  },
+  "pre-push": [
+    "test"
+  ]
 }
