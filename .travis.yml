@@ -1,9 +1,16 @@
 language: node_js
 node_js:
   - 10
-install:
-  npm install
-lint:
-  npm run lint
-test:
-  npm run test:only
+stages:
+  - install
+  - test
+jobs:
+  include:
+    - stage: install
+      script: npm install
+    - stage: test
+      name: lint
+      script: npm run lint
+    - stage: test
+      name: tests
+      script: npm test:only
