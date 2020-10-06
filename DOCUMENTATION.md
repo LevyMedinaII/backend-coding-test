@@ -33,29 +33,42 @@ Returns a ride given an id.
 }
 ```
 
-### Get All Rides
-Returns all stored rides.
+### Get Multiple Rides
+Returns multiple stored rides. Pagination is supported through `cursoring`. As long are there are rides not included in the initial request, the response will contain a `next_cursor`. Using that `next_cursor` as a query parameter in the next request with the same `order`, and `limit` will return the next set of entries.
 
 **URI:** /rides
 
 **Request Method:** GET
 
+**Query Parameters:**
+```
+{
+    order <optional string, ASC|DESC, default: ASC>: defines the sorting of the result,
+    next_cursor <optional integer>: indicates the starting rideID of the rides to be fetched,
+    limit <optional integer>: defines the number of entries to be fetched, will return all rides if empty
+}
+
 **Response Body:**
 ```
-[
-    {
-        rideID<integer>: unique id for each ride,
-        startLat<decimal>: starting latitude coordinate of the ride,
-        startLong<decimal>: starting longitude coordinate of the ride,
-        endLat<decimal>: ending latitude coordinate of the ride,
-        endLong<decimal>: ending longitude coordinate of the ride,
-        riderName<string>: name of the rider,
-        driverName<string>: name of the driver,
-        driverVehicle<string>: name of the vehicle,
-        created<datetime>: date the ride was saved
-    },
-    ...
-]
+{
+    rides<list>: [
+        {
+            rideID<integer>: unique id for each ride,
+            startLat<decimal>: starting latitude coordinate of the ride,
+            startLong<decimal>: starting longitude coordinate of the ride,
+            endLat<decimal>: ending latitude coordinate of the ride,
+            endLong<decimal>: ending longitude coordinate of the ride,
+            riderName<string>: name of the rider,
+            driverName<string>: name of the driver,
+            driverVehicle<string>: name of the vehicle,
+            created<datetime>: date the ride was saved
+        },
+        ...
+    ],
+    order<optional string, ASC|DESC>: defines the sorting of the result,
+    next_cursor <optional integer>: next_cursor value to be used to fetch the next set of entries,
+    limit <optional integer>: defines the number of entries fetched, 
+}
 ```
 
 ### Create a Ride

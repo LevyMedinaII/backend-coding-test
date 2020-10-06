@@ -15,7 +15,8 @@
             {
                 "properties": "always",
                 "allow": [
-                    "error_code"
+                    "error_code",
+                    "next_cursor"
                 ]
             }
         ],
