@@ -5,8 +5,9 @@ An API for storing and retrieving rides built with ExpressJS and SQLite.
 1. Pull this repository.
 2. Install Node (>8.6 and <= 10) and npm are installed.
 3. Install the dependencies via `npm install`.
-4. To run the server, run `node index.js`.
-5. To convert this documentation file to HTML format, run `npm run documentation`.
+4. To run the server, run `npm start`.
+5. To run the server in debug mode, run `npm run start-dev`.
+6. To convert this documentation file to HTML format, run `npm run documentation`.
 
 ## Routes
 ### Get Ride
