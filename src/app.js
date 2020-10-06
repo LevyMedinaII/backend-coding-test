@@ -2,6 +2,7 @@
 
 const express = require('express');
 const app = express();
+const util = require('util');
 
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
@@ -34,7 +35,13 @@ module.exports = (db) => {
             validateName(driverVehicle, 'Vehicle name must be a non empty string');
 
             var values = [req.body.start_lat, req.body.start_long, req.body.end_lat, req.body.end_long, req.body.rider_name, req.body.driver_name, req.body.driver_vehicle];
-            await db.run('INSERT INTO Rides(startLat, startLong, endLat, endLong, riderName, driverName, driverVehicle) VALUES (?, ?, ?, ?, ?, ?, ?)', values);
+            const statement = db.prepare('INSERT INTO Rides(startLat, startLong, endLat, endLong, riderName, driverName, driverVehicle) VALUES (?, ?, ?, ?, ?, ?, ?)');
+
+            statement.run = util.promisify(statement.run);
+            statement.finalize = util.promisify(statement.finalize);
+
+            await statement.run(values);
+            await statement.finalize();
 
             const ride = await db.get('SELECT * FROM Rides ORDER BY rideID DESC LIMIT 1');
 
@@ -68,21 +75,30 @@ module.exports = (db) => {
             if (nextCursor) validateNumber(nextCursor, 'Pagination next_cursor must be a valid number');
 
             let query = 'SELECT * FROM Rides';
+            const dbValues = [];
             if (nextCursor) {
                 if (order === 'DESC') {
-                    query = `${query} WHERE rideID <= ${nextCursor}`;
+                    query = `${query} WHERE rideID <= ?`;
                 } else {
-                    query = `${query} WHERE rideID >= ${nextCursor}`;
+                    query = `${query} WHERE rideID >= ?`;
                 }
+                dbValues.push(nextCursor);
             }
             if (order) {
-                query = `${query} ORDER BY rideID ${order}`;
+                if (order === 'DESC') query = `${query} ORDER BY rideID DESC`;
+                else query = `${query} ORDER BY rideID ASC`;
             }
             if (limit) {
-                query = `${query} LIMIT ${limit + 1}`;
+                query = `${query} LIMIT ?`;
+                dbValues.push(limit+1);
             }
 
-            const rows = await db.all(query);
+            const statement = db.prepare(query);
+
+            statement.all = util.promisify(statement.all);
+            statement.finalize = util.promisify(statement.finalize);
+            const rows = await statement.all(dbValues);
+            await statement.finalize();
 
             if (rows.length === 0) throw new DatabaseError('RIDES_NOT_FOUND_ERROR', 'Could not find any rides');
 
@@ -125,7 +141,14 @@ module.exports = (db) => {
 
     app.get('/rides/:id', async (req, res) => {
         try {
-            const ride = await db.get(`SELECT * FROM Rides WHERE rideID='${req.params.id}'`);
+            const statement = db.prepare(`SELECT * FROM Rides WHERE rideID=?`);
+
+            statement.get = util.promisify(statement.get);
+            statement.finalize = util.promisify(statement.finalize);
+
+            const ride = await statement.get([req.params.id]);
+            await statement.finalize();
+
             if (!ride) throw new DatabaseError('RIDES_NOT_FOUND_ERROR', 'Could not find any rides');
 
             res.send(ride);
